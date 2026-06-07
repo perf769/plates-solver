@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Решатель мини-игры с пластинами</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#141a2e; --panel-2:#1b2236;
+    --line:#283150; --text:#e6ebf5; --muted:#8b96b4;
+    --accent:#6366f1; --accent2:#818cf8;
+    --green:#22c55e; --green-dim:#16361f;
+    --orange:#f59e0b; --orange-dim:#3a2a0c;
+    --target:#38bdf8; --ok:#34d399; --err:#fb7185;
+    --radius:16px; --radius-sm:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 800px at 80% -10%,#1a2347 0,transparent 60%),
+               radial-gradient(1000px 700px at -10% 110%,#241a3f 0,transparent 55%),
+               var(--bg);
+    color:var(--text); min-height:100vh; padding:32px 20px 80px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+  header{margin-bottom:28px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.2px;font-weight:700}
+  .sub{color:var(--muted);font-size:14px;margin:0;line-height:1.5}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+  /* выбор количества пластин */
+  .countbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:20px;
+    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));
+    border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px}
+  .countbar .countlbl{font-size:14px;font-weight:600}
+  .countbar .counthint{font-size:12px;color:var(--muted)}
+  .stepper{display:flex;align-items:center;gap:4px;background:#0e1424;border:1px solid var(--line);border-radius:12px;padding:4px}
+  .stepper button{width:34px;height:34px;border:none;background:transparent;color:var(--text);
+    font-size:20px;font-weight:700;cursor:pointer;border-radius:9px;line-height:1;
+    transition:background .12s}
+  .stepper button:hover{background:#1a2238}
+  .stepper button:disabled{opacity:.3;cursor:default;background:transparent}
+  .stepper .nval{min-width:34px;text-align:center;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+  #matrix{overflow-x:auto;padding-bottom:4px}
+  .card{
+    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px; backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px -18px rgba(0,0,0,.8);
+  }
+  .card h2{font-size:15px;margin:0 0 4px;font-weight:600;letter-spacing:.3px}
+  .card .hint{color:var(--muted);font-size:12.5px;margin:0 0 16px;line-height:1.5}
+
+  /* матрица связей */
+  table.matrix{border-collapse:separate;border-spacing:6px;margin:0 auto}
+  table.matrix th{font-weight:600;font-size:12px;color:var(--muted);padding:0}
+  table.matrix th.col{width:42px}
+  table.matrix td.rowlbl{font-size:12px;color:var(--muted);text-align:right;padding-right:6px;white-space:nowrap;font-weight:600}
+  .cell{
+    width:42px;height:42px;border-radius:11px;border:1px solid var(--line);
+    background:#0e1424;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:16px;cursor:pointer;user-select:none;
+    transition:transform .08s ease, background .15s, border-color .15s;
+    color:var(--muted);
+  }
+  .cell:hover{transform:translateY(-1px);border-color:var(--accent2)}
+  .cell.diag{background:#0a0e1a;cursor:default;color:#3a4566;opacity:.35;border-style:dashed}
+  .cell.diag:hover{transform:none;border-color:var(--line)}
+  .cell.p{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+  .cell.r{background:var(--orange-dim);border-color:var(--orange);color:var(--orange)}
+  .legend{display:flex;gap:16px;justify-content:center;margin-top:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+  .legend b{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:14px;height:14px;border-radius:5px;display:inline-block}
+  .dot.p{background:var(--green-dim);border:1px solid var(--green)}
+  .dot.r{background:var(--orange-dim);border:1px solid var(--orange)}
+
+  /* позиции */
+  .plate-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .plate-row .name{width:92px;font-size:13px;color:var(--muted);font-weight:600;flex:none}
+  .holes{display:flex;gap:6px;flex-wrap:wrap}
+  .hole{
+    width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+    background:#0e1424;color:var(--muted);font-size:13px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:transform .08s, background .15s, border-color .15s, color .15s;
+  }
+  .hole:hover{transform:translateY(-1px);border-color:var(--accent2)}
+  .hole.target{border-color:var(--target);box-shadow:inset 0 0 0 2px rgba(56,189,248,.18)}
+  .hole.sel{background:var(--accent);border-color:var(--accent2);color:#fff;box-shadow:0 6px 16px -8px var(--accent)}
+  .hole.sel.target{background:var(--target);border-color:var(--target);box-shadow:0 6px 16px -8px var(--target)}
+
+  /* кнопки */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+  button.btn{
+    border:1px solid var(--line);background:#0e1424;color:var(--text);
+    padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:600;
+    cursor:pointer;transition:transform .08s,background .15s,border-color .15s;
+  }
+  button.btn:hover{transform:translateY(-1px);border-color:var(--accent2)}
+  button.btn.primary{
+    background:linear-gradient(180deg,var(--accent2),var(--accent));
+    border-color:transparent;color:#fff;
+    box-shadow:0 10px 24px -10px var(--accent);
+  }
+  button.btn.primary:hover{filter:brightness(1.07)}
+  button.btn.ghost{background:transparent}
+
+  /* результат */
+  #result{margin-top:22px}
+  .status{padding:14px 16px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:16px;border:1px solid var(--line)}
+  .status.ok{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.35);color:var(--ok)}
+  .status.err{background:rgba(251,113,133,.08);border-color:rgba(251,113,133,.35);color:var(--err)}
+  .copybar{display:flex;justify-content:flex-end;margin-bottom:14px}
+  #copyBtn{transition:transform .08s,background .15s,border-color .15s,color .15s}
+  #copyBtn.copied{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.5);color:var(--ok)}
+  ol.steps{margin:0;padding:0 0 0 0;list-style:none;counter-reset:s}
+  ol.steps li{
+    counter-increment:s;display:flex;align-items:center;gap:14px;
+    padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;
+    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
+  }
+  ol.steps li::before{
+    content:counter(s);flex:none;width:28px;height:28px;border-radius:9px;
+    background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px;box-shadow:0 6px 14px -8px var(--accent);
+  }
+  .mv-plate{font-weight:700}
+  .mv-move{font-variant-numeric:tabular-nums;font-weight:600}
+  .mv-arrow{color:var(--accent2);font-weight:700;margin:0 2px}
+  .mv-dir{margin-left:auto;font-size:12px;color:var(--muted);background:#0e1424;border:1px solid var(--line);padding:4px 9px;border-radius:8px}
+
+  table.trace{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}
+  table.trace th,table.trace td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line)}
+  table.trace th{color:var(--muted);font-weight:600;font-size:12px}
+  table.trace td.lbl{text-align:left;color:var(--muted)}
+  table.trace td .v{display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:7px}
+  table.trace td .v.hit{background:var(--accent);color:#fff;font-weight:700}
+  table.trace td .v.goal{background:rgba(52,211,153,.18);color:var(--ok);font-weight:700}
+  details{margin-top:14px}
+  details summary{cursor:pointer;color:var(--muted);font-size:13px;user-select:none}
+  .foot{color:var(--muted);font-size:12px;margin-top:26px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧩 Решатель мини-игры с пластинами</h1>
+    <p class="sub">6 пластин · 7 отверстий · цель — все штыри в центральном <b style="color:var(--target)">4-м</b> отверстии.<br>
+    Отметь связи и начальные положения — приложение выдаст пошаговое решение.</p>
+  </header>
+
+  <div class="countbar">
+    <span class="countlbl">Количество пластин</span>
+    <div class="stepper">
+      <button id="decN" title="Меньше">−</button>
+      <span class="nval" id="nVal">6</span>
+      <button id="incN" title="Больше">+</button>
+    </div>
+    <span class="counthint">от 2 до 10 · цель у всех — 4-е отверстие</span>
+  </div>
+
+  <div class="grid">
+    <!-- СВЯЗИ -->
+    <div class="card">
+      <h2>Связи пластин</h2>
+      <p class="hint">Строка = какую пластину двигаешь, столбец = какая пластина двигается вместе с ней. Клик по клетке переключает: пусто → <b style="color:var(--green)">п</b> (напрямую) → <b style="color:var(--orange)">р</b> (реверсивно) → пусто. Связи односторонние.</p>
+      <div id="matrix"></div>
+      <div class="legend">
+        <b><span class="dot p"></span> п — напрямую (в ту же сторону)</b>
+        <b><span class="dot r"></span> р — реверсивно (в обратную)</b>
+      </div>
+    </div>
+
+    <!-- ПОЗИЦИИ -->
+    <div class="card">
+      <h2>Начальное положение</h2>
+      <p class="hint">Выбери отверстие, в котором сейчас стоит штырь каждой пластины. Обведённое — целевое 4-е.</p>
+      <div id="positions"></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn primary" id="solveBtn">⚡ Решить</button>
+    <button class="btn" id="presetBtn">Загрузить «Задание 1»</button>
+    <button class="btn ghost" id="clearLinksBtn">Очистить связи</button>
+    <button class="btn ghost" id="resetPosBtn">Сбросить позиции</button>
+  </div>
+
+  <div id="result"></div>
+
+  <p class="foot">Поиск кратчайшего по числу ходов решения (BFS). Правила фиксированы: 7 отверстий, центр — 4-е.<br>Настройки сохраняются в браузере автоматически.</p>
+</div>
+
+<script>
+const HOLES = 7, CENTER = 4;
+const N_MIN = 2, N_MAX = 10;
+const STATE_LIMIT = 6000000;   // предохранитель от зависания при больших N
+let N = 6;
+// matrix[r][c] = null | 'p' | 'r'  (r,c = 0..N-1)
+let matrix = Array.from({length:N}, () => Array(N).fill(null));
+let positions = [2,2,7,7,5,3]; // 1..N
+let lastStepsText = '';        // текст последнего решения для копирования
+
+const PRESET = {
+  matrix: (()=>{ // Задание 1: 1→2 р; 2→6 р; 3→2 п,4 р,5 р,6 р; 4→3 р; 5→1 р; 6→3 р
+    const m = Array.from({length:N},()=>Array(N).fill(null));
+    const set=(a,b,t)=>m[a-1][b-1]=t;
+    set(1,2,'r'); set(2,6,'r');
+    set(3,2,'p'); set(3,4,'r'); set(3,5,'r'); set(3,6,'r');
+    set(4,3,'r'); set(5,1,'r'); set(6,3,'r');
+    return m;
+  })(),
+  positions:[2,2,7,7,5,3]
+};
+
+/* ---------- сохранение ---------- */
+function save(){ try{ localStorage.setItem('plates_state', JSON.stringify({matrix,positions})); }catch(e){} }
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem('plates_state'));
+    if(s && s.matrix && s.positions){
+      matrix = s.matrix; positions = s.positions;
+      N = Math.min(N_MAX, Math.max(N_MIN, positions.length));
+    }
+  }catch(e){}
+}
+
+/* ---------- изменение количества пластин ---------- */
+function setN(newN){
+  newN = Math.min(N_MAX, Math.max(N_MIN, newN));
+  if(newN === N){ return; }
+  // матрица: сохраняем пересечение со старой
+  const nm = Array.from({length:newN}, (_,r)=>
+    Array.from({length:newN}, (_,c)=> (r<N && c<N) ? matrix[r][c] : null));
+  // позиции: сохраняем старые, новым ставим центр
+  const np = Array.from({length:newN}, (_,i)=> i<N ? positions[i] : CENTER);
+  N = newN; matrix = nm; positions = np;
+  updateStepper();
+  renderMatrix(); renderPositions(); save();
+  document.getElementById('result').innerHTML = ''; // решение устарело
+}
+function updateStepper(){
+  document.getElementById('nVal').textContent = N;
+  document.getElementById('decN').disabled = (N <= N_MIN);
+  document.getElementById('incN').disabled = (N >= N_MAX);
+}
+
+/* ---------- рендер матрицы ---------- */
+function renderMatrix(){
+  const cont = document.getElementById('matrix');
+  let html = '<table class="matrix"><thead><tr><th></th>';
+  for(let c=0;c<N;c++) html += `<th class="col">→ ${c+1}</th>`;
+  html += '</tr></thead><tbody>';
+  for(let r=0;r<N;r++){
+    html += `<tr><td class="rowlbl">Пластина ${r+1}</td>`;
+    for(let c=0;c<N;c++){
+      if(r===c){ html += `<td><div class="cell diag">·</div></td>`; continue; }
+      const v = matrix[r][c];
+      const cls = v==='p'?'p':v==='r'?'r':'';
+      const txt = v==='p'?'п':v==='r'?'р':'';
+      html += `<td><div class="cell ${cls}" data-r="${r}" data-c="${c}">${txt}</div></td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+  cont.querySelectorAll('.cell:not(.diag)').forEach(el=>{
+    el.onclick = ()=>{
+      const r=+el.dataset.r, c=+el.dataset.c;
+      matrix[r][c] = matrix[r][c]===null ? 'p' : matrix[r][c]==='p' ? 'r' : null;
+      renderMatrix(); save();
+    };
+  });
+}
+
+/* ---------- рендер позиций ---------- */
+function renderPositions(){
+  const cont = document.getElementById('positions');
+  let html='';
+  for(let p=0;p<N;p++){
+    html += `<div class="plate-row"><div class="name">Пластина ${p+1}</div><div class="holes">`;
+    for(let h=1;h<=HOLES;h++){
+      const sel = positions[p]===h?'sel':'';
+      const tgt = h===CENTER?'target':'';
+      html += `<div class="hole ${sel} ${tgt}" data-p="${p}" data-h="${h}">${h}</div>`;
+    }
+    html += `</div></div>`;
+  }
+  cont.innerHTML = html;
+  cont.querySelectorAll('.hole').forEach(el=>{
+    el.onclick = ()=>{ positions[+el.dataset.p] = +el.dataset.h; renderPositions(); save(); };
+  });
+}
+
+/* ---------- решатель ---------- */
+function buildLinks(){
+  const links = {}; for(let p=1;p<=N;p++) links[p]=[];
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(matrix[r][c]) links[r+1].push([c+1, matrix[r][c]]);
+  return links;
+}
+function applyMove(st, links, p, d, s){
+  const nw = st.slice();
+  nw[p-1] += d*s;
+  if(nw[p-1]<1 || nw[p-1]>HOLES) return null;
+  for(const [t,ty] of links[p]){
+    nw[t-1] += (ty==='p'?d:-d)*s;
+    if(nw[t-1]<1 || nw[t-1]>HOLES) return null;
+  }
+  return nw;
+}
+function solve(links, start){
+  const goal = Array(N).fill(CENTER);
+  const startK = start.join(','), goalK = goal.join(',');
+  if(startK===goalK) return {moves:[], already:true};
+  const prev = new Map(); prev.set(startK,null);
+  const q=[startK]; let head=0; let overflow=false;
+  while(head<q.length){
+    const stK=q[head++];
+    if(stK===goalK) break;
+    if(prev.size > STATE_LIMIT){ overflow=true; break; }
+    const st=stK.split(',').map(Number);
+    for(let p=1;p<=N;p++) for(const d of [1,-1]) for(let s=1;s<=HOLES-1;s++){
+      const ns=applyMove(st,links,p,d,s);
+      if(ns===null) break;
+      const k=ns.join(',');
+      if(!prev.has(k)){ prev.set(k,[stK,[p,d,s]]); q.push(k); }
+    }
+  }
+  if(!prev.has(goalK)) return overflow ? {tooBig:true} : null;
+  const path=[]; let cur=goalK;
+  while(prev.get(cur)!==null){ const [par,act]=prev.get(cur); path.push([act,par]); cur=par; }
+  path.reverse();
+  const moves = path.map(([[plate,d,s],par])=>({plate,d,s,frm:par.split(',').map(Number)[plate-1]}));
+  return {moves, already:false};
+}
+
+/* ---------- вывод ---------- */
+function plural(n){ return n===1?'шаг':(n>=2&&n<=4)?'шага':'шагов'; }
+function showResult(res, start, links){
+  const out = document.getElementById('result');
+  if(res && res.tooBig){
+    out.innerHTML = `<div class="status err">⚠ Слишком большое пространство состояний для перебора при ${N} пластинах. Уменьши число пластин или добавь больше связей, чтобы сузить варианты.</div>`;
+    return;
+  }
+  if(res===null){
+    out.innerHTML = `<div class="status err">❌ Решение не найдено. При этих связях и положении собрать все штыри в центр нельзя — проверь связи (возможно, какая-то пластина блокирует у края).</div>`;
+    return;
+  }
+  if(res.already){
+    out.innerHTML = `<div class="status ok">✅ Уже решено — все штыри стоят в 4-м отверстии.</div>`;
+    return;
+  }
+  const m = res.moves;
+  // простой текст шагов — как в первом ответе: "1. Пластина 2: 2 → 4"
+  lastStepsText = m.map((mv,i)=>{
+    const to = mv.frm + mv.d*mv.s;
+    return `${i+1}. Пластина ${mv.plate}: ${mv.frm} → ${to}`;
+  }).join('\n');
+
+  let html = `<div class="status ok">✅ Решение найдено за ${m.length} ${plural(m.length)==='шаг'?'ход':(m.length>=2&&m.length<=4)?'хода':'ходов'}.</div>`;
+  html += `<div class="copybar"><button class="btn" id="copyBtn">📋 Скопировать шаги</button></div>`;
+  html += '<ol class="steps">';
+  for(const {plate,d,s,frm} of m){
+    const to = frm + d*s;
+    const dir = d>0 ? 'вправо' : 'влево';
+    html += `<li><span class="mv-plate">Пластина ${plate}</span>
+      <span class="mv-move">${frm} <span class="mv-arrow">→</span> ${to}</span>
+      <span class="mv-dir">${dir}, ${s} ${plural(s)}</span></li>`;
+  }
+  html += '</ol>';
+
+  // трассировка
+  html += '<details open><summary>Трассировка позиций (как меняются все пластины)</summary>';
+  html += '<table class="trace"><thead><tr><th class="lbl">ход</th>';
+  for(let p=1;p<=N;p++) html += `<th>П${p}</th>`;
+  html += '</tr></thead><tbody>';
+  const rowHtml = (label, st, changed)=>{
+    let h=`<tr><td class="lbl">${label}</td>`;
+    for(let p=0;p<N;p++){
+      const cls = st[p]===CENTER ? 'goal' : (changed && changed.has(p) ? 'hit':'');
+      h+=`<td><span class="v ${cls}">${st[p]}</span></td>`;
+    }
+    return h+'</tr>';
+  };
+  let st = start.slice();
+  html += rowHtml('старт', st, null);
+  m.forEach((mv,i)=>{
+    const before = st.slice();
+    st = applyMove(st, links, mv.plate, mv.d, mv.s);
+    const changed = new Set();
+    for(let p=0;p<N;p++) if(st[p]!==before[p]) changed.add(p);
+    html += rowHtml(`${i+1}. пл.${mv.plate} ${mv.d>0?'+':'−'}${mv.s}`, st, changed);
+  });
+  html += '</tbody></table></details>';
+
+  out.innerHTML = html;
+
+  const copyBtn = document.getElementById('copyBtn');
+  if(copyBtn){
+    copyBtn.onclick = async ()=>{
+      const ok = await copyText(lastStepsText);
+      const orig = '📋 Скопировать шаги';
+      copyBtn.textContent = ok ? '✅ Скопировано' : '⚠ Не удалось — выдели вручную';
+      copyBtn.classList.toggle('copied', ok);
+      setTimeout(()=>{ copyBtn.textContent = orig; copyBtn.classList.remove('copied'); }, 1800);
+    };
+  }
+}
+
+async function copyText(text){
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text); return true;
+    }
+  }catch(e){}
+  // фолбэк для file:// и старых браузеров
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok=document.execCommand('copy'); document.body.removeChild(ta);
+    return ok;
+  }catch(e){ return false; }
+}
+
+/* ---------- события ---------- */
+document.getElementById('solveBtn').onclick = ()=>{
+  const links = buildLinks();
+  const res = solve(links, positions.slice());
+  showResult(res, positions.slice(), links);
+  document.getElementById('result').scrollIntoView({behavior:'smooth',block:'nearest'});
+};
+document.getElementById('decN').onclick = ()=> setN(N-1);
+document.getElementById('incN').onclick = ()=> setN(N+1);
+document.getElementById('presetBtn').onclick = ()=>{
+  N = 6;
+  matrix = PRESET.matrix.map(r=>r.slice());
+  positions = PRESET.positions.slice();
+  updateStepper(); renderMatrix(); renderPositions(); save();
+  document.getElementById('result').innerHTML = '';
+};
+document.getElementById('clearLinksBtn').onclick = ()=>{
+  matrix = Array.from({length:N},()=>Array(N).fill(null));
+  renderMatrix(); save();
+};
+document.getElementById('resetPosBtn').onclick = ()=>{
+  positions = Array(N).fill(CENTER);
+  renderPositions(); save();
+};
+
+/* init */
+load();
+updateStepper();
+renderMatrix();
+renderPositions();
+</script>
+</body>
+</html>
