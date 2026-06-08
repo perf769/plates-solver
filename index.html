@@ -142,6 +142,19 @@
   details summary{cursor:pointer;color:var(--muted);font-size:13px;user-select:none}
   .foot{color:var(--muted);font-size:12px;margin-top:26px;text-align:center;line-height:1.6}
 </style>
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function(m,e,t,r,i,k,a){
+        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=109730930', 'ym');
+
+    ym(109730930, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/109730930" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
 </head>
 <body>
 <div class="wrap">
@@ -203,6 +216,12 @@ let matrix = Array.from({length:N}, () => Array(N).fill(null));
 let positions = [2,2,7,7,5,3]; // 1..N
 let lastStepsText = '';        // текст последнего решения для копирования
 
+/* ---------- Яндекс.Метрика: цели ---------- */
+const YM_ID = 109730930;
+function goal(name, params){
+  try{ if(window.ym){ ym(YM_ID, 'reachGoal', name, params); } }catch(e){}
+}
+
 const PRESET = {
   matrix: (()=>{ // Задание 1: 1→2 р; 2→6 р; 3→2 п,4 р,5 р,6 р; 4→3 р; 5→1 р; 6→3 р
     const m = Array.from({length:N},()=>Array(N).fill(null));
@@ -231,6 +250,7 @@ function load(){
 function setN(newN){
   newN = Math.min(N_MAX, Math.max(N_MIN, newN));
   if(newN === N){ return; }
+  goal('plates_change', {plates: newN});
   // матрица: сохраняем пересечение со старой
   const nm = Array.from({length:newN}, (_,r)=>
     Array.from({length:newN}, (_,c)=> (r<N && c<N) ? matrix[r][c] : null));
@@ -401,6 +421,7 @@ function showResult(res, start, links){
   if(copyBtn){
     copyBtn.onclick = async ()=>{
       const ok = await copyText(lastStepsText);
+      if(ok) goal('copy_steps');
       const orig = '📋 Скопировать шаги';
       copyBtn.textContent = ok ? '✅ Скопировано' : '⚠ Не удалось — выдели вручную';
       copyBtn.classList.toggle('copied', ok);
@@ -427,14 +448,21 @@ async function copyText(text){
 
 /* ---------- события ---------- */
 document.getElementById('solveBtn').onclick = ()=>{
+  goal('solve_click', {plates: N});
   const links = buildLinks();
   const res = solve(links, positions.slice());
   showResult(res, positions.slice(), links);
+  // цель по исходу решения
+  if(res && res.tooBig)       goal('solve_too_big', {plates: N});
+  else if(res === null)       goal('solve_no_solution', {plates: N});
+  else if(res.already)        goal('solve_already', {plates: N});
+  else                        goal('solve_success', {plates: N, moves: res.moves.length});
   document.getElementById('result').scrollIntoView({behavior:'smooth',block:'nearest'});
 };
 document.getElementById('decN').onclick = ()=> setN(N-1);
 document.getElementById('incN').onclick = ()=> setN(N+1);
 document.getElementById('presetBtn').onclick = ()=>{
+  goal('load_test_task');
   N = 6;
   matrix = PRESET.matrix.map(r=>r.slice());
   positions = PRESET.positions.slice();
