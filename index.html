@@ -1,146 +1,241 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Решатель мини-игры с пластинами</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Gothic 1 Remake — взлом сундуков</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 <style>
+  /* === Gothic 1 Remake: тёмный камень/кожа === */
   :root{
-    --bg:#0b1020; --panel:#141a2e; --panel-2:#1b2236;
-    --line:#283150; --text:#e6ebf5; --muted:#8b96b4;
-    --accent:#6366f1; --accent2:#818cf8;
-    --green:#22c55e; --green-dim:#16361f;
-    --orange:#f59e0b; --orange-dim:#3a2a0c;
-    --target:#38bdf8; --ok:#34d399; --err:#fb7185;
-    --radius:16px; --radius-sm:10px;
+    --bg:#13100b;
+    --card-bg:linear-gradient(180deg,#241d13 0,#1a140d 100%);
+    --field:#171109; --field-2:#241b10;
+    --line:#4a3923; --line-soft:#36281a;
+    --text:#e9dcbf; --muted:#a18d68;
+    --accent:#c9a05a; --accent2:#e6c884;   /* антикварное золото */
+    --green:#9aab57; --green-dim:#23280f;   /* мох — «напрямую» */
+    --orange:#c47b3b; --orange-dim:#2e1e10; /* медь/ржавчина — «реверс» */
+    --current:#b63a2d; --current-dim:#2c130e;/* кровь — текущий шаг */
+    --target:#e6c884; --ok:#9aab57; --err:#b63a2d;
+    --radius:12px;
+    --body-grad:radial-gradient(1100px 760px at 82% -12%,rgba(120,86,40,.30) 0,transparent 58%),radial-gradient(1000px 720px at -12% 108%,rgba(70,45,22,.40) 0,transparent 55%),linear-gradient(180deg,#171209 0,#13100b 60%,#0e0b07 100%);
+  }
+  /* === светлая = состаренный пергамент (журнал заданий) === */
+  html[data-theme="light"]{
+    --bg:#cdbb95;
+    --card-bg:linear-gradient(180deg,#f1e6c8 0,#e7d9b4 100%);
+    --field:#e6d6ad; --field-2:#dccb9c;
+    --line:#b39a68; --line-soft:#c8b388;
+    --text:#2c2113; --muted:#6e5c3a;
+    --accent:#8a6a2c; --accent2:#a07d35;
+    --green:#5e7032; --green-dim:#d9d3a6;
+    --orange:#9c5f27; --orange-dim:#e4d2a4;
+    --current:#9a2f23; --current-dim:#e8cdaa;
+    --target:#8a6a2c; --ok:#5e7032; --err:#9a2f23;
+    --body-grad:radial-gradient(1100px 760px at 82% -12%,rgba(190,160,110,.45) 0,transparent 58%),radial-gradient(1000px 720px at -12% 108%,rgba(150,120,80,.32) 0,transparent 55%),linear-gradient(180deg,#dacba8 0,#cdbb95 60%,#c1ab7f 100%);
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{
-    font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
-    background:radial-gradient(1200px 800px at 80% -10%,#1a2347 0,transparent 60%),
-               radial-gradient(1000px 700px at -10% 110%,#241a3f 0,transparent 55%),
-               var(--bg);
-    color:var(--text); min-height:100vh; padding:32px 20px 80px;
+    font-family:'EB Garamond','Georgia','Times New Roman',serif;
+    font-size:16px;
+    background:var(--body-grad);
+    color:var(--text); min-height:100vh;
+    padding:max(24px,env(safe-area-inset-top)) 16px calc(120px + env(safe-area-inset-bottom));
+    -webkit-tap-highlight-color:transparent; transition:background .25s,color .25s;
   }
+  /* зернистая текстура камня/кожи поверх фона */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection{background:rgba(201,160,90,.35);color:var(--text)}
   .wrap{max-width:1080px;margin:0 auto}
-  header{margin-bottom:28px}
-  h1{font-size:26px;margin:0 0 6px;letter-spacing:.2px;font-weight:700}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+  .title-wrap{display:flex;gap:13px;align-items:flex-start}
+  .emblem{flex:none;width:46px;height:46px;color:var(--accent);filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));margin-top:2px}
+  h1{font-family:'Cinzel',serif;font-size:21px;margin:0 0 6px;letter-spacing:.04em;
+    font-weight:700;line-height:1.18;color:var(--text);text-shadow:0 1px 1px rgba(0,0,0,.35)}
+  h1 .accent{color:var(--accent2)}
   .sub{color:var(--muted);font-size:14px;margin:0;line-height:1.5}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .sub b{color:var(--target)}
+  .theme-btn{flex:none;width:46px;height:46px;border-radius:11px;border:1px solid var(--line);
+    background:var(--field);color:var(--accent2);font-size:20px;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;transition:background .15s,border-color .15s;
+    box-shadow:inset 0 1px 0 rgba(230,200,132,.12)}
+  .theme-btn:active{transform:scale(.94)}
+  /* орнамент-разделитель как в игре: ромб с линиями */
+  .divider{display:flex;align-items:center;gap:12px;margin:14px 0 22px;color:var(--accent)}
+  .divider::before,.divider::after{content:"";height:1px;flex:1;
+    background:linear-gradient(90deg,transparent,var(--line),transparent)}
+  .divider .rune{width:13px;height:13px;transform:rotate(45deg);border:1.5px solid var(--accent);
+    background:var(--field);box-shadow:0 0 10px rgba(201,160,90,.35)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
 
   /* выбор количества пластин */
-  .countbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:20px;
-    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));
-    border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px}
-  .countbar .countlbl{font-size:14px;font-weight:600}
-  .countbar .counthint{font-size:12px;color:var(--muted)}
-  .stepper{display:flex;align-items:center;gap:4px;background:#0e1424;border:1px solid var(--line);border-radius:12px;padding:4px}
-  .stepper button{width:34px;height:34px;border:none;background:transparent;color:var(--text);
-    font-size:20px;font-weight:700;cursor:pointer;border-radius:9px;line-height:1;
-    transition:background .12s}
-  .stepper button:hover{background:#1a2238}
+  .countbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;
+    background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .countbar .countlbl{font-family:'Cinzel',serif;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--accent2)}
+  .countbar .counthint{font-size:12.5px;color:var(--muted)}
+  .stepper{display:flex;align-items:center;gap:4px;background:var(--field);border:1px solid var(--line);border-radius:11px;padding:4px}
+  .stepper button{width:38px;height:38px;border:none;background:transparent;color:var(--accent2);
+    font-size:22px;font-weight:700;cursor:pointer;border-radius:8px;line-height:1;transition:background .12s}
+  .stepper button:active{background:var(--field-2)}
   .stepper button:disabled{opacity:.3;cursor:default;background:transparent}
-  .stepper .nval{min-width:34px;text-align:center;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
-  #matrix{overflow-x:auto;padding-bottom:4px}
-  .card{
-    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));
-    border:1px solid var(--line); border-radius:var(--radius);
-    padding:20px; backdrop-filter:blur(6px);
-    box-shadow:0 10px 30px -18px rgba(0,0,0,.8);
-  }
-  .card h2{font-size:15px;margin:0 0 4px;font-weight:600;letter-spacing:.3px}
-  .card .hint{color:var(--muted);font-size:12.5px;margin:0 0 16px;line-height:1.5}
+  .stepper .nval{min-width:34px;text-align:center;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+
+  .card{background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;box-shadow:0 14px 34px -22px rgba(0,0,0,.85),inset 0 1px 0 rgba(230,200,132,.07);min-width:0}
+  .card h2{font-family:'Cinzel',serif;font-size:15px;margin:0 0 10px;font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--accent2);
+    padding-bottom:9px;border-bottom:1px solid var(--line-soft)}
+  .card .hint{color:var(--muted);font-size:13px;margin:0 0 14px;line-height:1.5}
+  .card .hint svg{vertical-align:-4px}
 
   /* матрица связей */
-  table.matrix{border-collapse:separate;border-spacing:6px;margin:0 auto}
-  table.matrix th{font-weight:600;font-size:12px;color:var(--muted);padding:0}
-  table.matrix th.col{width:42px}
-  table.matrix td.rowlbl{font-size:12px;color:var(--muted);text-align:right;padding-right:6px;white-space:nowrap;font-weight:600}
-  .cell{
-    width:42px;height:42px;border-radius:11px;border:1px solid var(--line);
-    background:#0e1424;display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:16px;cursor:pointer;user-select:none;
-    transition:transform .08s ease, background .15s, border-color .15s;
-    color:var(--muted);
-  }
-  .cell:hover{transform:translateY(-1px);border-color:var(--accent2)}
-  .cell.diag{background:#0a0e1a;cursor:default;color:#3a4566;opacity:.35;border-style:dashed}
-  .cell.diag:hover{transform:none;border-color:var(--line)}
-  .cell.p{background:var(--green-dim);border-color:var(--green);color:var(--green)}
-  .cell.r{background:var(--orange-dim);border-color:var(--orange);color:var(--orange)}
-  .legend{display:flex;gap:16px;justify-content:center;margin-top:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
-  .legend b{display:inline-flex;align-items:center;gap:6px}
-  .dot{width:14px;height:14px;border-radius:5px;display:inline-block}
-  .dot.p{background:var(--green-dim);border:1px solid var(--green)}
-  .dot.r{background:var(--orange-dim);border:1px solid var(--orange)}
+  #matrix{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;max-width:100%}
+  .mgrid{display:grid;gap:6px;width:max-content;margin:0 auto}
+  .mhead{font-family:'Cinzel',serif;font-size:11.5px;color:var(--accent);font-weight:600;display:flex;align-items:center;justify-content:center;min-height:24px}
+  .rowlbl{font-family:'Cinzel',serif;font-size:11.5px;color:var(--accent);font-weight:600;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;white-space:nowrap}
+  .cell{width:clamp(38px,11vw,46px);height:clamp(38px,11vw,46px);border-radius:7px;border:1px solid var(--line);
+    background:linear-gradient(160deg,#2a2114,#191309);display:flex;align-items:center;justify-content:center;cursor:pointer;
+    user-select:none;color:var(--muted);transition:background .15s,border-color .15s,transform .06s;touch-action:manipulation;
+    box-shadow:inset 0 1px 0 rgba(230,200,132,.08),inset 0 -2px 4px rgba(0,0,0,.45)}
+  .cell:active{transform:scale(.93)}
+  .cell.diag{background:transparent;cursor:default;opacity:.25;border-style:dashed;box-shadow:none}
+  .cell.diag:active{transform:none}
+  .cell.p{background:linear-gradient(160deg,#34381a,#23280f);border-color:#9aab57;color:#aebd66}
+  .cell.r{background:linear-gradient(160deg,#3a2814,#2a1c0e);border-color:#c47b3b;color:#d08b4a}
+  .cell svg{width:58%;height:58%}
+  .legend{display:flex;gap:14px;justify-content:center;margin-top:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+  .legend b{display:inline-flex;align-items:center;gap:7px;font-weight:500}
+  .legend .ic{width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;border:1px solid}
+  .legend .ic.p{background:#23280f;border-color:#9aab57;color:#aebd66}
+  .legend .ic.r{background:#2e1e10;border-color:#c47b3b;color:#d08b4a}
+  .legend .ic svg{width:60%;height:60%}
 
   /* позиции */
-  .plate-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-  .plate-row .name{width:92px;font-size:13px;color:var(--muted);font-weight:600;flex:none}
-  .holes{display:flex;gap:6px;flex-wrap:wrap}
-  .hole{
-    width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
-    background:#0e1424;color:var(--muted);font-size:13px;font-weight:600;
-    display:flex;align-items:center;justify-content:center;cursor:pointer;
-    transition:transform .08s, background .15s, border-color .15s, color .15s;
-  }
-  .hole:hover{transform:translateY(-1px);border-color:var(--accent2)}
-  .hole.target{border-color:var(--target);box-shadow:inset 0 0 0 2px rgba(56,189,248,.18)}
-  .hole.sel{background:var(--accent);border-color:var(--accent2);color:#fff;box-shadow:0 6px 16px -8px var(--accent)}
-  .hole.sel.target{background:var(--target);border-color:var(--target);box-shadow:0 6px 16px -8px var(--target)}
+  /* стальная пластина с просверленными отверстиями */
+  .plate{margin-bottom:11px;background:linear-gradient(180deg,#2c2417,#1c1610);
+    border:1px solid var(--line);border-radius:10px;padding:9px 11px;
+    box-shadow:inset 0 1px 0 rgba(230,200,132,.07),0 4px 12px -8px rgba(0,0,0,.6)}
+  .plate .name{font-family:'Cinzel',serif;font-size:11.5px;color:var(--accent);font-weight:600;letter-spacing:.04em;margin-bottom:7px}
+  .holes{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .hole{aspect-ratio:1;border-radius:50%;border:1px solid var(--line-soft);
+    background:radial-gradient(circle at 50% 36%,#0c0905,#040302);
+    color:var(--muted);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .06s,box-shadow .15s;touch-action:manipulation;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.7)}
+  .hole:active{transform:scale(.92)}
+  .hole.target{border-color:#e6c884;box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 0 0 2px rgba(230,200,132,.30)}
+  /* поднятый штырь — светящийся золотой */
+  .hole.sel{background:radial-gradient(circle at 50% 34%,#e6c884,#c9a05a 58%,#7a5824);
+    border-color:#e6c884;color:#1c1306;
+    box-shadow:0 0 14px -2px rgba(230,200,132,.65),inset 0 1px 1px rgba(255,240,200,.5)}
+  .hole.sel.target{background:radial-gradient(circle at 50% 34%,#fff0cf,#e6c884 55%,#c9a05a);border-color:#fff0cf}
 
-  /* кнопки */
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
-  button.btn{
-    border:1px solid var(--line);background:#0e1424;color:var(--text);
-    padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:600;
-    cursor:pointer;transition:transform .08s,background .15s,border-color .15s;
-  }
-  button.btn:hover{transform:translateY(-1px);border-color:var(--accent2)}
-  button.btn.primary{
-    background:linear-gradient(180deg,var(--accent2),var(--accent));
-    border-color:transparent;color:#fff;
-    box-shadow:0 10px 24px -10px var(--accent);
-  }
-  button.btn.primary:hover{filter:brightness(1.07)}
-  button.btn.ghost{background:transparent}
+  /* кнопки-тулбар */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  button.btn{font-family:'Cinzel',serif;border:1px solid var(--line);background:linear-gradient(180deg,#2a2114,#1d160d);
+    color:var(--accent2);padding:11px 16px;border-radius:9px;font-size:12px;font-weight:600;letter-spacing:.04em;
+    text-transform:uppercase;cursor:pointer;transition:background .15s,border-color .15s,transform .06s;touch-action:manipulation;
+    box-shadow:inset 0 1px 0 rgba(230,200,132,.1)}
+  button.btn:hover{border-color:var(--accent)}
+  button.btn:active{transform:scale(.97)}
+  button.btn.ghost{background:transparent;color:var(--muted);box-shadow:none}
+
+  /* плавающие кнопки */
+  .fab-wrap{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:50;
+    display:flex;align-items:center;gap:10px}
+  .fab{border-radius:12px;cursor:pointer;font-weight:700;
+    box-shadow:0 14px 34px -10px rgba(0,0,0,.7);transition:transform .08s,filter .15s;touch-action:manipulation}
+  .fab:active{transform:scale(.95)}
+  .fab.solve{font-family:'Cinzel',serif;letter-spacing:.05em;text-transform:uppercase;
+    background:linear-gradient(180deg,#e6c884,#c9a05a 52%,#9c7838);color:#1c1206;
+    border:1px solid #7a5a26;padding:15px 22px;font-size:15px;display:flex;align-items:center;gap:8px;
+    box-shadow:0 14px 34px -10px rgba(0,0,0,.7),inset 0 1px 1px rgba(255,242,210,.55),0 0 22px -6px rgba(230,200,132,.5)}
+  .fab.reset{width:54px;height:54px;background:linear-gradient(180deg,#2a2114,#1a140c);color:var(--accent2);
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 14px 34px -10px rgba(0,0,0,.7),inset 0 1px 0 rgba(230,200,132,.12)}
+  .fab.reset svg{width:24px;height:24px}
 
   /* результат */
-  #result{margin-top:22px}
-  .status{padding:14px 16px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:16px;border:1px solid var(--line)}
-  .status.ok{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.35);color:var(--ok)}
-  .status.err{background:rgba(251,113,133,.08);border-color:rgba(251,113,133,.35);color:var(--err)}
-  .copybar{display:flex;justify-content:flex-end;margin-bottom:14px}
-  #copyBtn{transition:transform .08s,background .15s,border-color .15s,color .15s}
-  #copyBtn.copied{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.5);color:var(--ok)}
-  ol.steps{margin:0;padding:0 0 0 0;list-style:none;counter-reset:s}
-  ol.steps li{
-    counter-increment:s;display:flex;align-items:center;gap:14px;
-    padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;
-    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
-  }
-  ol.steps li::before{
-    content:counter(s);flex:none;width:28px;height:28px;border-radius:9px;
-    background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:13px;box-shadow:0 6px 14px -8px var(--accent);
-  }
-  .mv-plate{font-weight:700}
-  .mv-move{font-variant-numeric:tabular-nums;font-weight:600}
-  .mv-arrow{color:var(--accent2);font-weight:700;margin:0 2px}
-  .mv-dir{margin-left:auto;font-size:12px;color:var(--muted);background:#0e1424;border:1px solid var(--line);padding:4px 9px;border-radius:8px}
+  #result{margin-top:20px}
+  .status{padding:14px 16px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:14px;border:1px solid var(--line)}
+  .status.ok{background:color-mix(in srgb,var(--ok) 12%,transparent);border-color:color-mix(in srgb,var(--ok) 40%,transparent);color:var(--ok)}
+  .status.err{background:color-mix(in srgb,var(--err) 12%,transparent);border-color:color-mix(in srgb,var(--err) 40%,transparent);color:var(--err)}
+  .resbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .resbar .tip{font-size:12px;color:var(--muted)}
+  #copyBtn.copied{background:color-mix(in srgb,var(--ok) 14%,transparent);border-color:color-mix(in srgb,var(--ok) 50%,transparent);color:var(--ok)}
+  ol.steps{margin:0;padding:0;list-style:none;counter-reset:s}
+  ol.steps li{counter-increment:s;display:flex;align-items:center;gap:12px;padding:13px 14px;
+    border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;user-select:none;
+    background:var(--card-bg);transition:background .15s,border-color .15s,transform .06s;touch-action:manipulation}
+  ol.steps li:active{transform:scale(.99)}
+  ol.steps li::before{content:counter(s);flex:none;width:28px;height:28px;border-radius:8px;font-family:'Cinzel',serif;
+    background:linear-gradient(180deg,var(--accent2),var(--accent));color:#1c1206;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+    box-shadow:inset 0 1px 0 rgba(255,242,210,.5)}
+  ol.steps li.current{border-color:var(--current);box-shadow:0 0 0 1px var(--current),0 0 18px -6px color-mix(in srgb,var(--current) 70%,transparent)}
+  ol.steps li.current::before{background:linear-gradient(180deg,#d4513f,var(--current));color:#fff}
+  ol.steps li.done{background:linear-gradient(180deg,#262a13,#1c1f0e);border-color:var(--green)}
+  ol.steps li.done::before{content:"✓";background:linear-gradient(180deg,#aebd66,var(--green));color:#161e08}
+  ol.steps li.done .mv-plate,ol.steps li.done .mv-move{opacity:.55}
+  .mv-plate{font-family:'Cinzel',serif;font-weight:600;font-size:14px;color:var(--text)}
+  .mv-move{font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent2)}
+  .mv-arrow{color:var(--muted);font-weight:700;margin:0 2px}
+  /* бейдж направления — как клавиша A/D */
+  .mv-dir{margin-left:auto;display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .mv-dir .key{font-family:'Cinzel',serif;font-weight:700;font-size:12px;min-width:22px;text-align:center;
+    color:var(--accent2);background:linear-gradient(180deg,#2a2114,#191309);border:1px solid var(--line);
+    border-radius:6px;padding:3px 6px;box-shadow:inset 0 1px 0 rgba(230,200,132,.12),0 1px 2px rgba(0,0,0,.5)}
+  .mv-dir .lbl{font-size:12px;color:var(--muted)}
 
-  table.trace{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}
-  table.trace th,table.trace td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line)}
-  table.trace th{color:var(--muted);font-weight:600;font-size:12px}
-  table.trace td.lbl{text-align:left;color:var(--muted)}
-  table.trace td .v{display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:7px}
-  table.trace td .v.hit{background:var(--accent);color:#fff;font-weight:700}
-  table.trace td .v.goal{background:rgba(52,211,153,.18);color:var(--ok);font-weight:700}
+  table.trace{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+  table.trace th,table.trace td{padding:7px 5px;text-align:center;border-bottom:1px solid var(--line)}
+  table.trace th{color:var(--accent);font-weight:600;font-size:12px;font-family:'Cinzel',serif}
+  table.trace td.lbl{text-align:left;color:var(--muted);white-space:nowrap}
+  table.trace td .v{display:inline-flex;width:25px;height:25px;align-items:center;justify-content:center;border-radius:6px}
+  table.trace td .v.hit{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#1c1206;font-weight:700}
+  table.trace td .v.goal{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok);font-weight:700}
   details{margin-top:14px}
   details summary{cursor:pointer;color:var(--muted);font-size:13px;user-select:none}
-  .foot{color:var(--muted);font-size:12px;margin-top:26px;text-align:center;line-height:1.6}
+  .trace-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  .foot{color:var(--muted);font-size:12px;margin-top:30px;text-align:center;line-height:1.65}
+  .foot .disc{display:block;margin-top:10px;font-style:italic;opacity:.8;font-size:11px;max-width:640px;margin-left:auto;margin-right:auto}
+
+  /* модалка уровней */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;
+    align-items:flex-end;justify-content:center;padding:0}
+  .overlay.open{display:flex}
+  @media(min-width:560px){.overlay{align-items:center;padding:20px}}
+  .modal{background:var(--card-bg);border:1px solid var(--line);width:100%;max-width:520px;
+    border-radius:16px 16px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    max-height:88vh;overflow-y:auto;box-shadow:0 -12px 44px rgba(0,0,0,.7),inset 0 1px 0 rgba(230,200,132,.08)}
+  @media(min-width:560px){.modal{border-radius:14px}}
+  .modal h3{font-family:'Cinzel',serif;text-transform:uppercase;letter-spacing:.05em;color:var(--accent2);
+    margin:0 0 14px;font-size:16px;display:flex;align-items:center;justify-content:space-between}
+  .modal .x{border:1px solid var(--line);background:var(--field);color:var(--accent2);width:34px;height:34px;border-radius:9px;font-size:18px;cursor:pointer}
+  .field{display:flex;gap:8px;margin-bottom:8px}
+  .field input{flex:1;min-width:0;background:var(--field);border:1px solid var(--line);color:var(--text);
+    border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit}
+  .field input:focus{outline:none;border-color:var(--accent2)}
+  .field button{flex:none}
+  .sep{height:1px;background:var(--line);margin:16px 0}
+  .lvl-list{display:flex;flex-direction:column;gap:8px}
+  .lvl-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--field)}
+  .lvl-item .lvl-name{flex:1;min-width:0;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lvl-item .lvl-meta{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+  .lvl-item button{border:none;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .lvl-item .load{background:var(--accent);color:#fff}
+  .lvl-item .del{background:transparent;color:var(--err);border:1px solid var(--line)!important;width:38px;padding:8px 0}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px 0}
 </style>
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript">
@@ -159,10 +254,24 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>🧩 Решатель мини-игры с пластинами</h1>
-    <p class="sub">6 пластин · 7 отверстий · цель — все штыри в центральном <b style="color:var(--target)">4-м</b> отверстии.<br>
-    Отметь связи и начальные положения — приложение выдаст пошаговое решение.</p>
+    <div class="title-wrap">
+      <svg class="emblem" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M27 23 C22 17 21 12 22 7 M24 12 C20 11 17 9 15 6 M23 17 C19 18 15 17 12 14"/>
+        <path d="M37 23 C42 17 43 12 42 7 M40 12 C44 11 47 9 49 6 M41 17 C45 18 49 17 52 14"/>
+        <path d="M32 21 C39 21 43 27 43 33 C43 39 39 45 32 49 C25 45 21 39 21 33 C21 27 25 21 32 21 Z"/>
+        <path d="M28 32 C26.5 32 26 34 27 35.4 C28 36.4 30 36 30 34 C30 32.8 29 32 28 32 Z" fill="currentColor" stroke="none"/>
+        <path d="M36 32 C37.5 32 38 34 37 35.4 C36 36.4 34 36 34 34 C34 32.8 35 32 36 32 Z" fill="currentColor" stroke="none"/>
+        <path d="M32 38 l-2.2 4 h4.4 z" fill="currentColor" stroke="none"/>
+      </svg>
+      <div>
+        <h1>Gothic 1 Remake<br><span class="accent">Взлом сундуков</span></h1>
+        <p class="sub">Решатель мини-игры с пластинами: 7 отверстий, цель — все штыри в центральном <b>4-м</b>. Отметь связи и положения — получишь ходы.</p>
+      </div>
+    </div>
+    <button class="theme-btn" id="themeBtn" title="Сменить тему" aria-label="Сменить тему">🌙</button>
   </header>
+
+  <div class="divider"><span class="rune"></span></div>
 
   <div class="countbar">
     <span class="countlbl">Количество пластин</span>
@@ -171,60 +280,80 @@
       <span class="nval" id="nVal">6</span>
       <button id="incN" title="Больше">+</button>
     </div>
-    <span class="counthint">от 2 до 10 · цель у всех — 4-е отверстие</span>
+    <span class="counthint">от 2 до 10</span>
   </div>
 
   <div class="grid">
-    <!-- СВЯЗИ -->
     <div class="card">
       <h2>Связи пластин</h2>
-      <p class="hint">Строка = какую пластину двигаешь, столбец = какая пластина двигается вместе с ней. Клик по клетке переключает: пусто → <b style="color:var(--green)">п</b> (напрямую) → <b style="color:var(--orange)">р</b> (реверсивно) → пусто. Связи односторонние.</p>
+      <p class="hint">Строка = какую пластину двигаешь, столбец = какая едет вместе с ней. Клик по клетке: пусто → <span id="hintP"></span> напрямую → <span id="hintR"></span> реверсивно → пусто. Связи односторонние.</p>
       <div id="matrix"></div>
-      <div class="legend">
-        <b><span class="dot p"></span> п — напрямую (в ту же сторону)</b>
-        <b><span class="dot r"></span> р — реверсивно (в обратную)</b>
-      </div>
+      <div class="legend" id="legend"></div>
     </div>
 
-    <!-- ПОЗИЦИИ -->
     <div class="card">
       <h2>Начальное положение</h2>
-      <p class="hint">Выбери отверстие, в котором сейчас стоит штырь каждой пластины. Обведённое — целевое 4-е.</p>
+      <p class="hint">Выбери отверстие, где сейчас стоит штырь каждой пластины. Обведённое — целевое 4-е.</p>
       <div id="positions"></div>
     </div>
   </div>
 
   <div class="toolbar">
-    <button class="btn primary" id="solveBtn">⚡ Решить</button>
-    <button class="btn" id="presetBtn">Загрузить тестовое задание</button>
-    <button class="btn ghost" id="clearLinksBtn">Очистить связи</button>
-    <button class="btn ghost" id="resetPosBtn">Сбросить позиции</button>
+    <button class="btn" id="presetBtn">📋 Тестовое задание</button>
+    <button class="btn" id="saveLevelBtn">💾 Сохранить уровень</button>
+    <button class="btn ghost" id="levelsBtn">📂 Мои уровни</button>
   </div>
 
   <div id="result"></div>
 
-  <p class="foot">Поиск кратчайшего по числу ходов решения (BFS). Правила фиксированы: 7 отверстий, центр — 4-е.<br>Настройки сохраняются в браузере автоматически.</p>
+  <p class="foot">
+    Поиск кратчайшего по числу ходов решения. Настройки и уровни сохраняются в твоём браузере.
+    <span class="disc">Фанатский вспомогательный инструмент. Gothic 1 Remake, все названия, образы и связанные материалы принадлежат их авторам и правообладателям (Alkimia Interactive, THQ Nordic, Embracer Group и др.). Сайт неофициальный, не аффилирован с правообладателями, не претендует на какие-либо права и не распространяет игровые материалы.</span>
+  </p>
+</div>
+
+<!-- плавающие кнопки -->
+<div class="fab-wrap">
+  <button class="fab reset" id="resetAllBtn" title="Сбросить всё" aria-label="Сбросить всё">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+  </button>
+  <button class="fab solve" id="solveBtn">⚡ Решить</button>
+</div>
+
+<!-- модалка уровней -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Мои уровни <button class="x" id="closeModal" aria-label="Закрыть">✕</button></h3>
+    <div class="field">
+      <input id="levelName" type="text" placeholder="Название уровня…" maxlength="60">
+      <button class="btn" id="doSaveLevel">Сохранить</button>
+    </div>
+    <div class="sep"></div>
+    <div class="field"><input id="levelSearch" type="text" placeholder="🔎 Поиск по названию…"></div>
+    <div class="lvl-list" id="levelList"></div>
+  </div>
 </div>
 
 <script>
 const HOLES = 7, CENTER = 4;
 const N_MIN = 2, N_MAX = 10;
-const STATE_LIMIT = 6000000;   // предохранитель от зависания при больших N
+const STATE_LIMIT = 6000000;
 let N = 6;
-// matrix[r][c] = null | 'p' | 'r'  (r,c = 0..N-1)
 let matrix = Array.from({length:N}, () => Array(N).fill(null));
-let positions = [2,2,7,7,5,3]; // 1..N
-let lastStepsText = '';        // текст последнего решения для копирования
+let positions = [2,2,7,7,5,3];
+let lastStepsText = '';
+
+/* ---------- иконки ---------- */
+const ICON_P = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>';
+const ICON_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 4 19 8.5 14 13"/><line x1="5" y1="8.5" x2="19" y2="8.5"/><polyline points="10 20 5 15.5 10 11"/><line x1="19" y1="15.5" x2="5" y2="15.5"/></svg>';
 
 /* ---------- Яндекс.Метрика: цели ---------- */
 const YM_ID = 109730930;
-function goal(name, params){
-  try{ if(window.ym){ ym(YM_ID, 'reachGoal', name, params); } }catch(e){}
-}
+function goal(name, params){ try{ if(window.ym){ ym(YM_ID, 'reachGoal', name, params); } }catch(e){} }
 
 const PRESET = {
-  matrix: (()=>{ // Задание 1: 1→2 р; 2→6 р; 3→2 п,4 р,5 р,6 р; 4→3 р; 5→1 р; 6→3 р
-    const m = Array.from({length:N},()=>Array(N).fill(null));
+  matrix: (()=>{
+    const m = Array.from({length:6},()=>Array(6).fill(null));
     const set=(a,b,t)=>m[a-1][b-1]=t;
     set(1,2,'r'); set(2,6,'r');
     set(3,2,'p'); set(3,4,'r'); set(3,5,'r'); set(3,6,'r');
@@ -234,7 +363,26 @@ const PRESET = {
   positions:[2,2,7,7,5,3]
 };
 
-/* ---------- сохранение ---------- */
+/* ---------- тема ---------- */
+function loadTheme(){
+  let t = null;
+  try{ t = localStorage.getItem('plates_theme'); }catch(e){}
+  if(!t) t = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  applyTheme(t);
+}
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('themeBtn').textContent = t==='light' ? '☀️' : '🌙';
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur==='light' ? 'dark' : 'light';
+  applyTheme(next);
+  try{ localStorage.setItem('plates_theme', next); }catch(e){}
+  goal('theme_toggle', {theme: next});
+}
+
+/* ---------- сохранение текущего состояния ---------- */
 function save(){ try{ localStorage.setItem('plates_state', JSON.stringify({matrix,positions})); }catch(e){} }
 function load(){
   try{
@@ -245,21 +393,18 @@ function load(){
     }
   }catch(e){}
 }
+function clearResult(){ document.getElementById('result').innerHTML = ''; }
 
-/* ---------- изменение количества пластин ---------- */
+/* ---------- количество пластин ---------- */
 function setN(newN){
   newN = Math.min(N_MAX, Math.max(N_MIN, newN));
   if(newN === N){ return; }
   goal('plates_change', {plates: newN});
-  // матрица: сохраняем пересечение со старой
-  const nm = Array.from({length:newN}, (_,r)=>
+  matrix = Array.from({length:newN}, (_,r)=>
     Array.from({length:newN}, (_,c)=> (r<N && c<N) ? matrix[r][c] : null));
-  // позиции: сохраняем старые, новым ставим центр
-  const np = Array.from({length:newN}, (_,i)=> i<N ? positions[i] : CENTER);
-  N = newN; matrix = nm; positions = np;
-  updateStepper();
-  renderMatrix(); renderPositions(); save();
-  document.getElementById('result').innerHTML = ''; // решение устарело
+  positions = Array.from({length:newN}, (_,i)=> i<N ? positions[i] : CENTER);
+  N = newN;
+  updateStepper(); renderMatrix(); renderPositions(); save(); clearResult();
 }
 function updateStepper(){
   document.getElementById('nVal').textContent = N;
@@ -267,51 +412,65 @@ function updateStepper(){
   document.getElementById('incN').disabled = (N >= N_MAX);
 }
 
-/* ---------- рендер матрицы ---------- */
+/* ---------- рендер матрицы (строится при смене N) ---------- */
+function cellInner(v){ return v==='p'?ICON_P : v==='r'?ICON_R : ''; }
+function cellClass(v){ return 'cell' + (v==='p'?' p':v==='r'?' r':''); }
 function renderMatrix(){
   const cont = document.getElementById('matrix');
-  let html = '<table class="matrix"><thead><tr><th></th>';
-  for(let c=0;c<N;c++) html += `<th class="col">→ ${c+1}</th>`;
-  html += '</tr></thead><tbody>';
+  let h = `<div class="mgrid" style="grid-template-columns:auto repeat(${N},auto)">`;
+  h += `<div class="mhead"></div>`;
+  for(let c=0;c<N;c++) h += `<div class="mhead">→${c+1}</div>`;
   for(let r=0;r<N;r++){
-    html += `<tr><td class="rowlbl">Пластина ${r+1}</td>`;
+    h += `<div class="rowlbl">№${r+1}</div>`;
     for(let c=0;c<N;c++){
-      if(r===c){ html += `<td><div class="cell diag">·</div></td>`; continue; }
+      if(r===c){ h += `<div class="cell diag"></div>`; continue; }
       const v = matrix[r][c];
-      const cls = v==='p'?'p':v==='r'?'r':'';
-      const txt = v==='p'?'п':v==='r'?'р':'';
-      html += `<td><div class="cell ${cls}" data-r="${r}" data-c="${c}">${txt}</div></td>`;
+      h += `<div class="${cellClass(v)}" data-r="${r}" data-c="${c}">${cellInner(v)}</div>`;
     }
-    html += '</tr>';
   }
-  html += '</tbody></table>';
-  cont.innerHTML = html;
-  cont.querySelectorAll('.cell:not(.diag)').forEach(el=>{
-    el.onclick = ()=>{
-      const r=+el.dataset.r, c=+el.dataset.c;
-      matrix[r][c] = matrix[r][c]===null ? 'p' : matrix[r][c]==='p' ? 'r' : null;
-      renderMatrix(); save();
-    };
-  });
+  h += `</div>`;
+  cont.innerHTML = h;
 }
 
-/* ---------- рендер позиций ---------- */
+/* ---------- рендер позиций (строится при смене N) ---------- */
 function renderPositions(){
   const cont = document.getElementById('positions');
-  let html='';
+  let h='';
   for(let p=0;p<N;p++){
-    html += `<div class="plate-row"><div class="name">Пластина ${p+1}</div><div class="holes">`;
-    for(let h=1;h<=HOLES;h++){
-      const sel = positions[p]===h?'sel':'';
-      const tgt = h===CENTER?'target':'';
-      html += `<div class="hole ${sel} ${tgt}" data-p="${p}" data-h="${h}">${h}</div>`;
+    h += `<div class="plate"><div class="name">Пластина ${p+1}</div><div class="holes">`;
+    for(let n=1;n<=HOLES;n++){
+      const sel = positions[p]===n?' sel':'';
+      const tgt = n===CENTER?' target':'';
+      h += `<div class="hole${sel}${tgt}" data-p="${p}" data-h="${n}">${n}</div>`;
     }
-    html += `</div></div>`;
+    h += `</div></div>`;
   }
-  cont.innerHTML = html;
-  cont.querySelectorAll('.hole').forEach(el=>{
-    el.onclick = ()=>{ positions[+el.dataset.p] = +el.dataset.h; renderPositions(); save(); };
+  cont.innerHTML = h;
+}
+
+/* ---------- точечные обновления DOM (без полного ререндера) ---------- */
+function onMatrixClick(e){
+  const cell = e.target.closest('.cell');
+  if(!cell || cell.classList.contains('diag')) return;
+  const r=+cell.dataset.r, c=+cell.dataset.c;
+  const v = matrix[r][c];
+  const nv = v===null ? 'p' : v==='p' ? 'r' : null;
+  matrix[r][c] = nv;
+  cell.className = cellClass(nv);
+  cell.innerHTML = cellInner(nv);
+  save(); clearResult();
+}
+function onPositionsClick(e){
+  const hole = e.target.closest('.hole');
+  if(!hole) return;
+  const p=+hole.dataset.p, n=+hole.dataset.h;
+  if(positions[p]===n) return;
+  positions[p]=n;
+  const cont = document.getElementById('positions');
+  cont.querySelectorAll(`.hole[data-p="${p}"]`).forEach(el=>{
+    el.classList.toggle('sel', +el.dataset.h===n);
   });
+  save(); clearResult();
 }
 
 /* ---------- решатель ---------- */
@@ -331,8 +490,8 @@ function applyMove(st, links, p, d, s){
   return nw;
 }
 function solve(links, start){
-  const goal = Array(N).fill(CENTER);
-  const startK = start.join(','), goalK = goal.join(',');
+  const target = Array(N).fill(CENTER);
+  const startK = start.join(','), goalK = target.join(',');
   if(startK===goalK) return {moves:[], already:true};
   const prev = new Map(); prev.set(startK,null);
   const q=[startK]; let head=0; let overflow=false;
@@ -361,11 +520,11 @@ function plural(n){ return n===1?'шаг':(n>=2&&n<=4)?'шага':'шагов'; 
 function showResult(res, start, links){
   const out = document.getElementById('result');
   if(res && res.tooBig){
-    out.innerHTML = `<div class="status err">⚠ Слишком большое пространство состояний для перебора при ${N} пластинах. Уменьши число пластин или добавь больше связей, чтобы сузить варианты.</div>`;
+    out.innerHTML = `<div class="status err">⚠ Слишком большое пространство перебора при ${N} пластинах. Уменьши число пластин или добавь связи.</div>`;
     return;
   }
   if(res===null){
-    out.innerHTML = `<div class="status err">❌ Решение не найдено. При этих связях и положении собрать все штыри в центр нельзя — проверь связи (возможно, какая-то пластина блокирует у края).</div>`;
+    out.innerHTML = `<div class="status err">❌ Решение не найдено. При этих связях и положении собрать все штыри в центр нельзя.</div>`;
     return;
   }
   if(res.already){
@@ -373,26 +532,28 @@ function showResult(res, start, links){
     return;
   }
   const m = res.moves;
-  // простой текст шагов — как в первом ответе: "1. Пластина 2: 2 → 4"
   lastStepsText = m.map((mv,i)=>{
     const to = mv.frm + mv.d*mv.s;
     return `${i+1}. Пластина ${mv.plate}: ${mv.frm} → ${to}`;
   }).join('\n');
 
-  let html = `<div class="status ok">✅ Решение найдено за ${m.length} ${plural(m.length)==='шаг'?'ход':(m.length>=2&&m.length<=4)?'хода':'ходов'}.</div>`;
-  html += `<div class="copybar"><button class="btn" id="copyBtn">📋 Скопировать шаги</button></div>`;
+  const word = m.length===1?'ход':(m.length>=2&&m.length<=4)?'хода':'ходов';
+  let html = `<div class="status ok">✅ Решение найдено за ${m.length} ${word}.</div>`;
+  html += `<div class="resbar"><span class="tip">Нажми на шаг, чтобы отметить выполненным — следующий подсветится.</span>`
+        + `<button class="btn" id="copyBtn">📋 Скопировать шаги</button></div>`;
   html += '<ol class="steps">';
   for(const {plate,d,s,frm} of m){
     const to = frm + d*s;
-    const dir = d>0 ? 'вправо' : 'влево';
-    html += `<li><span class="mv-plate">Пластина ${plate}</span>
-      <span class="mv-move">${frm} <span class="mv-arrow">→</span> ${to}</span>
-      <span class="mv-dir">${dir}, ${s} ${plural(s)}</span></li>`;
+    // в игре движение инвертировано: + по индексу = клавиша A (влево)
+    const dir = d>0 ? 'влево' : 'вправо';
+    const key = d>0 ? 'A' : 'D';
+    html += `<li><span class="mv-plate">Пластина ${plate}</span>`
+          + `<span class="mv-move">${frm} <span class="mv-arrow">→</span> ${to}</span>`
+          + `<span class="mv-dir"><span class="key">${key}</span><span class="lbl">${dir} · ${s} ${plural(s)}</span></span></li>`;
   }
   html += '</ol>';
 
-  // трассировка
-  html += '<details open><summary>Трассировка позиций (как меняются все пластины)</summary>';
+  html += '<details><summary>Трассировка позиций (как меняются все пластины)</summary><div class="trace-wrap">';
   html += '<table class="trace"><thead><tr><th class="lbl">ход</th>';
   for(let p=1;p<=N;p++) html += `<th>П${p}</th>`;
   html += '</tr></thead><tbody>';
@@ -411,32 +572,42 @@ function showResult(res, start, links){
     st = applyMove(st, links, mv.plate, mv.d, mv.s);
     const changed = new Set();
     for(let p=0;p<N;p++) if(st[p]!==before[p]) changed.add(p);
-    html += rowHtml(`${i+1}. пл.${mv.plate} ${mv.d>0?'+':'−'}${mv.s}`, st, changed);
+    html += rowHtml(`${i+1}. пл.${mv.plate}`, st, changed);
   });
-  html += '</tbody></table></details>';
+  html += '</tbody></table></div></details>';
 
   out.innerHTML = html;
 
-  const copyBtn = document.getElementById('copyBtn');
-  if(copyBtn){
-    copyBtn.onclick = async ()=>{
-      const ok = await copyText(lastStepsText);
-      if(ok) goal('copy_steps');
-      const orig = '📋 Скопировать шаги';
-      copyBtn.textContent = ok ? '✅ Скопировано' : '⚠ Не удалось — выдели вручную';
-      copyBtn.classList.toggle('copied', ok);
-      setTimeout(()=>{ copyBtn.textContent = orig; copyBtn.classList.remove('copied'); }, 1800);
-    };
+  // отметка шагов
+  const ol = out.querySelector('ol.steps');
+  function refreshCurrent(){
+    const items=[...ol.children];
+    items.forEach(li=>li.classList.remove('current'));
+    const first=items.find(li=>!li.classList.contains('done'));
+    if(first) first.classList.add('current');
   }
+  ol.addEventListener('click', e=>{
+    const li=e.target.closest('li'); if(!li) return;
+    li.classList.toggle('done');
+    refreshCurrent();
+    goal('step_done');
+  });
+  refreshCurrent();
+
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.onclick = async ()=>{
+    const ok = await copyText(lastStepsText);
+    if(ok) goal('copy_steps');
+    copyBtn.textContent = ok ? '✅ Скопировано' : '⚠ Не удалось';
+    copyBtn.classList.toggle('copied', ok);
+    setTimeout(()=>{ copyBtn.textContent='📋 Скопировать шаги'; copyBtn.classList.remove('copied'); }, 1800);
+  };
 }
 
 async function copyText(text){
   try{
-    if(navigator.clipboard && window.isSecureContext){
-      await navigator.clipboard.writeText(text); return true;
-    }
+    if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(text); return true; }
   }catch(e){}
-  // фолбэк для file:// и старых браузеров
   try{
     const ta=document.createElement('textarea');
     ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
@@ -446,39 +617,112 @@ async function copyText(text){
   }catch(e){ return false; }
 }
 
+/* ---------- уровни ---------- */
+let lvlSeq = 0;
+function getLevels(){ try{ return JSON.parse(localStorage.getItem('plates_levels')) || []; }catch(e){ return []; } }
+function setLevels(a){ try{ localStorage.setItem('plates_levels', JSON.stringify(a)); }catch(e){} }
+function saveCurrentLevel(name){
+  const levels = getLevels();
+  const id = Date.now().toString(36) + '-' + (lvlSeq++);
+  levels.unshift({ id, name, N, matrix: matrix.map(r=>r.slice()), positions: positions.slice() });
+  setLevels(levels);
+  goal('save_level', {plates: N});
+}
+function loadLevel(id){
+  const lv = getLevels().find(l=>l.id===id);
+  if(!lv) return;
+  N = Math.min(N_MAX, Math.max(N_MIN, lv.N || lv.positions.length));
+  matrix = lv.matrix.map(r=>r.slice());
+  positions = lv.positions.slice();
+  updateStepper(); renderMatrix(); renderPositions(); save(); clearResult();
+  goal('load_level');
+}
+function deleteLevel(id){ setLevels(getLevels().filter(l=>l.id!==id)); }
+function renderLevelList(filter){
+  const list = document.getElementById('levelList');
+  const f = (filter||'').trim().toLowerCase();
+  const levels = getLevels().filter(l=>!f || l.name.toLowerCase().includes(f));
+  if(!levels.length){
+    list.innerHTML = `<div class="empty">${getLevels().length ? 'Ничего не найдено' : 'Пока нет сохранённых уровней'}</div>`;
+    return;
+  }
+  list.innerHTML = levels.map(l=>{
+    const nm = l.name.replace(/[<>&]/g, ch=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[ch]));
+    return `<div class="lvl-item"><div class="lvl-name">${nm}<div class="lvl-meta">${l.N} пластин</div></div>`
+         + `<button class="load" data-id="${l.id}">Загрузить</button>`
+         + `<button class="del" data-id="${l.id}" title="Удалить">🗑</button></div>`;
+  }).join('');
+}
+function openLevels(focusSave){
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('levelSearch').value='';
+  renderLevelList('');
+  if(focusSave) setTimeout(()=>document.getElementById('levelName').focus(), 50);
+}
+function closeLevels(){ document.getElementById('overlay').classList.remove('open'); }
+
 /* ---------- события ---------- */
+document.getElementById('matrix').addEventListener('click', onMatrixClick);
+document.getElementById('positions').addEventListener('click', onPositionsClick);
+document.getElementById('themeBtn').onclick = toggleTheme;
+document.getElementById('decN').onclick = ()=> setN(N-1);
+document.getElementById('incN').onclick = ()=> setN(N+1);
+
 document.getElementById('solveBtn').onclick = ()=>{
   goal('solve_click', {plates: N});
   const links = buildLinks();
   const res = solve(links, positions.slice());
   showResult(res, positions.slice(), links);
-  // цель по исходу решения
   if(res && res.tooBig)       goal('solve_too_big', {plates: N});
   else if(res === null)       goal('solve_no_solution', {plates: N});
   else if(res.already)        goal('solve_already', {plates: N});
   else                        goal('solve_success', {plates: N, moves: res.moves.length});
   document.getElementById('result').scrollIntoView({behavior:'smooth',block:'nearest'});
 };
-document.getElementById('decN').onclick = ()=> setN(N-1);
-document.getElementById('incN').onclick = ()=> setN(N+1);
+document.getElementById('resetAllBtn').onclick = ()=>{
+  goal('reset_all');
+  matrix = Array.from({length:N},()=>Array(N).fill(null));
+  positions = Array(N).fill(CENTER);
+  renderMatrix(); renderPositions(); save(); clearResult();
+};
 document.getElementById('presetBtn').onclick = ()=>{
   goal('load_test_task');
   N = 6;
   matrix = PRESET.matrix.map(r=>r.slice());
   positions = PRESET.positions.slice();
-  updateStepper(); renderMatrix(); renderPositions(); save();
-  document.getElementById('result').innerHTML = '';
-};
-document.getElementById('clearLinksBtn').onclick = ()=>{
-  matrix = Array.from({length:N},()=>Array(N).fill(null));
-  renderMatrix(); save();
-};
-document.getElementById('resetPosBtn').onclick = ()=>{
-  positions = Array(N).fill(CENTER);
-  renderPositions(); save();
+  updateStepper(); renderMatrix(); renderPositions(); save(); clearResult();
 };
 
-/* init */
+document.getElementById('saveLevelBtn').onclick = ()=> openLevels(true);
+document.getElementById('levelsBtn').onclick = ()=> openLevels(false);
+document.getElementById('closeModal').onclick = closeLevels;
+document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeLevels(); });
+document.getElementById('doSaveLevel').onclick = ()=>{
+  const inp = document.getElementById('levelName');
+  const name = inp.value.trim();
+  if(!name){ inp.focus(); inp.style.borderColor='var(--err)'; setTimeout(()=>inp.style.borderColor='',1000); return; }
+  saveCurrentLevel(name);
+  inp.value='';
+  renderLevelList(document.getElementById('levelSearch').value);
+};
+document.getElementById('levelName').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('doSaveLevel').click(); });
+document.getElementById('levelSearch').addEventListener('input', e=> renderLevelList(e.target.value));
+document.getElementById('levelList').addEventListener('click', e=>{
+  const load = e.target.closest('.load'); const del = e.target.closest('.del');
+  if(load){ loadLevel(load.dataset.id); closeLevels(); }
+  else if(del){
+    if(confirm('Удалить этот уровень?')){ deleteLevel(del.dataset.id); renderLevelList(document.getElementById('levelSearch').value); }
+  }
+});
+
+/* ---------- init ---------- */
+document.getElementById('hintP').innerHTML = `<span style="display:inline-flex;width:20px;height:20px;border:1px solid #9aab57;border-radius:5px;color:#aebd66;background:#23280f;vertical-align:-5px">${ICON_P}</span>`;
+document.getElementById('hintR').innerHTML = `<span style="display:inline-flex;width:20px;height:20px;border:1px solid #c47b3b;border-radius:5px;color:#d08b4a;background:#2e1e10;vertical-align:-5px">${ICON_R}</span>`;
+document.getElementById('legend').innerHTML =
+  `<b><span class="ic p">${ICON_P}</span> напрямую — связанная едет в ту же сторону</b>`
++ `<b><span class="ic r">${ICON_R}</span> реверсивно — связанная едет в обратную</b>`;
+
+loadTheme();
 load();
 updateStepper();
 renderMatrix();
